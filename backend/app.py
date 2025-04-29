@@ -1,0 +1,378 @@
+# from flask import Flask, Response
+# import cv2
+# import numpy as np
+# import os
+# import time
+# import pygame
+# from gtts import gTTS
+# from flask_cors import CORS
+
+# app = Flask(__name__)
+# CORS(app)
+
+# # Load YOLO model
+# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# weights_path = os.path.join(BASE_DIR, "yolov3.weights")
+# config_path = os.path.join(BASE_DIR, "yolov3.cfg")
+# labels_path = os.path.join(BASE_DIR, "coco.names")
+
+# net = cv2.dnn.readNet(weights_path, config_path)
+# layer_names = net.getLayerNames()
+# output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
+# labels = open(labels_path).read().strip().split("\n")
+
+# # Initialize camera
+# camera = cv2.VideoCapture(0)
+
+# # Initialize pygame mixer for audio feedback
+# pygame.mixer.init()
+
+# # Control feedback timing
+# last_feedback_time = 0
+# feedback_interval = 5  # seconds
+
+# def give_audio_feedback(objects_detected):
+#     unique_objects = list(set(objects_detected))
+#     if unique_objects:
+#         text = "Warning! " + ", ".join(unique_objects) + " ahead."
+#     else:
+#         text = "Path is clear, move forward."
+
+#     audio_path = os.path.join(BASE_DIR, "audio_feedback.mp3")
+#     tts = gTTS(text=text, lang='en')
+#     tts.save(audio_path)
+#     pygame.mixer.music.load(audio_path)
+#     pygame.mixer.music.play()
+#     while pygame.mixer.music.get_busy():
+#         time.sleep(0.05)
+#     pygame.mixer.music.unload()
+#     os.remove(audio_path)
+
+# def generate_frames():
+#     global last_feedback_time
+#     frame_count = 0
+
+#     while True:
+#         success, frame = camera.read()
+#         if not success:
+#             break
+
+#         height, width, _ = frame.shape
+#         blob = cv2.dnn.blobFromImage(frame, 0.00392, (416, 416), swapRB=True, crop=False)
+#         net.setInput(blob)
+#         detections = net.forward(output_layers)
+
+#         boxes = []
+#         confidences = []
+#         class_ids = []
+#         objects_detected = []
+
+#         for output in detections:
+#             for detection in output:
+#                 scores = detection[5:]
+#                 class_id = np.argmax(scores)
+#                 confidence = scores[class_id]
+
+#                 if confidence > 0.5:
+#                     center_x, center_y, w, h = (detection[0:4] * np.array([width, height, width, height])).astype("int")
+#                     x, y = int(center_x - w / 2), int(center_y - h / 2)
+
+#                     boxes.append([x, y, w, h])
+#                     confidences.append(float(confidence))
+#                     class_ids.append(class_id)
+
+#         indices = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
+
+#         if len(indices) > 0:
+#             for i in indices.flatten():
+#                 x, y, w, h = boxes[i]
+#                 label = labels[class_ids[i]]
+#                 objects_detected.append(label)
+#                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+#                 cv2.putText(frame, label, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+#         # Give audio feedback every 5 seconds
+#         current_time = time.time()
+#         if current_time - last_feedback_time > feedback_interval:
+#             give_audio_feedback(objects_detected)
+#             last_feedback_time = current_time
+
+#         _, buffer = cv2.imencode('.jpg', frame)
+#         frame = buffer.tobytes()
+#         yield (b'--frame\r\n'
+#                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+# @app.route('/video_feed')
+# def video_feed():
+#     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+# if __name__ == "__main__":
+#     try:
+#         app.run(debug=True)
+#     finally:
+#         camera.release()
+
+# from flask import Flask, Response
+# import cv2
+# import numpy as np
+# import os
+# import time
+# import pygame
+# from gtts import gTTS
+# from flask_cors import CORS
+
+# app = Flask(__name__)
+# CORS(app)
+
+# # Load YOLO model
+# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# weights_path = os.path.join(BASE_DIR, "yolov3.weights")
+# config_path = os.path.join(BASE_DIR, "yolov3.cfg")
+# labels_path = os.path.join(BASE_DIR, "coco.names")
+
+# net = cv2.dnn.readNet(weights_path, config_path)
+# layer_names = net.getLayerNames()
+# output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
+# labels = open(labels_path).read().strip().split("\n")
+
+# # Initialize camera
+# camera = cv2.VideoCapture(0)
+
+# # Initialize pygame mixer for audio feedback
+# pygame.mixer.init()
+
+# # Control feedback timing
+# last_feedback_time = 0
+# feedback_interval = 5  # seconds
+
+# def give_audio_feedback(directions):
+#     if not directions:
+#         text = "Path is clear, move forward."
+#     else:
+#         text = " ".join(directions)
+
+#     try:
+#         audio_path = os.path.join(BASE_DIR, "audio_feedback.mp3")
+#         tts = gTTS(text=text, lang='en')
+#         tts.save(audio_path)
+#         pygame.mixer.music.load(audio_path)
+#         pygame.mixer.music.play()
+#         while pygame.mixer.music.get_busy():
+#             time.sleep(0.05)
+#         pygame.mixer.music.unload()
+#         os.remove(audio_path)
+#     except Exception as e:
+#         print(f"Audio feedback error: {e}")
+
+# def generate_frames():
+#     global last_feedback_time
+#     while True:
+#         success, frame = camera.read()
+#         if not success:
+#             break
+
+#         height, width, _ = frame.shape
+#         blob = cv2.dnn.blobFromImage(frame, 0.00392, (416, 416), swapRB=True, crop=False)
+#         net.setInput(blob)
+#         detections = net.forward(output_layers)
+
+#         boxes = []
+#         confidences = []
+#         class_ids = []
+#         directions = []
+
+#         for output in detections:
+#             for detection in output:
+#                 scores = detection[5:]
+#                 class_id = np.argmax(scores)
+#                 confidence = scores[class_id]
+
+#                 if confidence > 0.5:
+#                     center_x, center_y, w, h = (detection[0:4] * np.array([width, height, width, height])).astype("int")
+#                     x, y = int(center_x - w / 2), int(center_y - h / 2)
+
+#                     boxes.append([x, y, w, h])
+#                     confidences.append(float(confidence))
+#                     class_ids.append(class_id)
+
+#         indices = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
+
+#         if len(indices) > 0:
+#             for i in indices.flatten():
+#                 x, y, w, h = boxes[i]
+#                 label = labels[class_ids[i]]
+
+#                 # Distance Estimation
+#                 object_width_in_frame = w
+#                 known_object_width = 0.5  # meters (example size)
+#                 focal_length = 700        # Assumed/calibrated
+#                 if object_width_in_frame != 0:
+#                     distance = (known_object_width * focal_length) / object_width_in_frame
+#                 else:
+#                     distance = 100  # Assume far away if zero division
+
+#                 if distance <= 5.0:  # Only within 5 meters
+#                     object_center = x + w / 2
+#                     if object_center < width / 3:
+#                         directions.append(f"{label} on left .Move right!")
+#                     elif object_center > 2 * width / 3:
+#                         directions.append(f"{label} on right.Move left! ")
+#                     else:
+#                         directions.append(f"Caution! {label} ahead.")
+
+#                 # Draw Bounding box
+#                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+#                 cv2.putText(frame, label, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+#         current_time = time.time()
+#         if current_time - last_feedback_time > feedback_interval:
+#             give_audio_feedback(directions)
+#             last_feedback_time = current_time
+
+#         _, buffer = cv2.imencode('.jpg', frame)
+#         frame = buffer.tobytes()
+#         yield (b'--frame\r\n'
+#                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+# @app.route('/video_feed')
+# def video_feed():
+#     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+# if __name__ == "__main__":
+#     try:
+#         app.run(debug=True, threaded=True)
+#     finally:
+#        camera.release()
+from flask import Flask, Response
+import cv2
+import numpy as np
+import os
+import time
+import pygame
+from gtts import gTTS
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)
+
+# Load YOLO model
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+weights_path = os.path.join(BASE_DIR, "yolov3.weights")
+config_path = os.path.join(BASE_DIR, "yolov3.cfg")
+labels_path = os.path.join(BASE_DIR, "coco.names")
+
+net = cv2.dnn.readNet(weights_path, config_path)
+layer_names = net.getLayerNames()
+output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
+labels = open(labels_path).read().strip().split("\n")
+
+# Initialize camera
+camera = cv2.VideoCapture(0)  # Change to 1 for external camera or 0 for default
+
+# Initialize pygame mixer for audio feedback
+pygame.mixer.init()
+
+# Control feedback timing
+last_feedback_time = 0
+feedback_interval = 5  # seconds
+
+def give_audio_feedback(directions):
+    if not directions:
+        text = "Path is clear, move forward."
+    else:
+        text = " ".join(directions)
+
+    try:
+        audio_path = os.path.join(BASE_DIR, "audio_feedback.mp3")
+        tts = gTTS(text=text, lang='en')
+        tts.save(audio_path)
+        pygame.mixer.music.load(audio_path)
+        pygame.mixer.music.play()
+        while pygame.mixer.music.get_busy():
+            time.sleep(0.05)
+        pygame.mixer.music.unload()
+        os.remove(audio_path)
+    except Exception as e:
+        print(f"Audio feedback error: {e}")
+
+def generate_frames():
+    global last_feedback_time
+    while True:
+        success, frame = camera.read()
+        if not success:
+            break
+
+        height, width, _ = frame.shape
+        blob = cv2.dnn.blobFromImage(frame, 0.00392, (416, 416), swapRB=True, crop=False)
+        net.setInput(blob)
+        detections = net.forward(output_layers)
+
+        boxes = []
+        confidences = []
+        class_ids = []
+        directions = []
+
+        for output in detections:
+            for detection in output:
+                scores = detection[5:]
+                class_id = np.argmax(scores)
+                confidence = scores[class_id]
+
+                if confidence > 0.5:
+                    center_x, center_y, w, h = (detection[0:4] * np.array([width, height, width, height])).astype("int")
+                    x, y = int(center_x - w / 2), int(center_y - h / 2)
+
+                    boxes.append([x, y, w, h])
+                    confidences.append(float(confidence))
+                    class_ids.append(class_id)
+
+        # Ensure indices is not None
+        indices = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
+
+        if indices is not None and len(indices) > 0:
+            for i in indices.flatten():
+                x, y, w, h = boxes[i]
+                label = labels[class_ids[i]]
+
+                # Distance Estimation
+                object_width_in_frame = w
+                known_object_width = 0.5  # meters (example size)
+                focal_length = 700        # Assumed/calibrated
+                if object_width_in_frame != 0:
+                    distance = (known_object_width * focal_length) / object_width_in_frame
+                else:
+                    distance = 100  # Assume far away if zero division
+
+                if distance <= 5.0:  # Only within 5 meters
+                    object_center = x + w / 2
+                    if object_center < width / 3:
+                        directions.append(f"{label} on left. Move right!")
+                    elif object_center > 2 * width / 3:
+                        directions.append(f"{label} on right. Move left!")
+                    else:
+                        directions.append(f"Caution! {label} ahead.")
+
+                # Draw Bounding box
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                cv2.putText(frame, label, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        # Provide audio feedback every 5 seconds
+        current_time = time.time()
+        if current_time - last_feedback_time > feedback_interval:
+            give_audio_feedback(directions)
+            last_feedback_time = current_time
+
+        _, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+if __name__ == "__main__":
+    try:
+        app.run(debug=True, threaded=True)
+    finally:
+       camera.release()
