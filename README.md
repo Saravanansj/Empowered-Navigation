@@ -6,7 +6,7 @@ Please **review, verify, and use them according to your own understanding**.
 If you find any mistakes or improvements, feel free to open an **Issue** or share your feedback.  
 Thank you!
 
-**Introduction**
+## Introduction 
 This project is designed to empower visually impaired persons to navigate independently and safely throughout the world.
 
 ## Future Development
